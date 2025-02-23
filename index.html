@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenLayers + GeoJSON Polygon Example</title>
+  <!-- Add OpenLayers CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol/ol.css">
+  <!-- Font Awesome برای آیکون‌ها -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <!-- لینک به manifest فایل -->
+  <link rel="manifest" href="manifest.json">
+  <!-- تعیین رنگ تم -->
+  <meta name="theme-color" content="#ffffff">
+  <style>
+    /* استایل اصلی نقشه */
+    #map {
+      width: 100%;
+      height: 100vh;
+    }
+
+    /* استایل نوار ابزار */
+    #toolbar {
+      position: absolute;
+      top: 5px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      padding: 0;
+      border-radius: 0;
+      box-shadow: 0 0 0 rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: row;
+      margin: 0;
+    }
+    
+    #toolbar button {
+      margin: 0;
+      padding: 0;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 0;
+      cursor: pointer;
+      font-size: 14px;
+      width: 30px;
+      height: 30px;
+      aspect-ratio: 1 / 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    #toolbar button:hover {
+      background-color: #0056b3;
+    }
+    
+    /* استایل جعبه اطلاعات */
+    #info-box {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      z-index: 1000;
+      background-color: white;
+      padding: 10px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      display: none;
+      max-width: 90%;
+    }
+
+    #info-box .close-btn {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background-color: transparent;
+      color: #ff4d4d;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+    }
+    #info-box .close-btn:hover {
+      color: #cc0000;
+    }
+
+    #info-text {
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    @media (max-width: 600px) {
+      #toolbar {
+        top: 5px;
+        padding: 8px;
+      }
+      #toolbar button {
+        font-size: 12px;
+        padding: 8px;
+      }
+      #info-box {
+        bottom: 5px;
+        left: 5px;
+        padding: 8px;
+      }
+      #info-text {
+        font-size: 12px;
+      }
+    }
+  </style>
+  <!-- Add OpenLayers JS -->
+  <script src="https://cdn.jsdelivr.net/npm/ol/dist/ol.js"></script>
+</head>
+<body>
+  <!-- نوار ابزار -->
+  <div id="toolbar">
+    <button id="locate-button" title="رفتن به موقعیت من">
+      <i class="fas fa-location-arrow"></i>
+    </button>
+    <button id="search-button" title="جستجوی مکان">
+      <i class="fas fa-search"></i>
+    </button>
+    <button id="toggle-geojson" title="فعال/غیرفعال کردن لایه GeoJSON">
+      <i class="fas fa-layer-group"></i>
+    </button>
+    <button id="zoom-in" title="بزرگ‌نمایی">
+      <i class="fas fa-plus"></i>
+    </button>
+    <button id="zoom-out" title="کوچک‌نمایی">
+      <i class="fas fa-minus"></i>
+    </button>
+  </div>
+
+  <!-- جعبه نمایش اطلاعات -->
+  <div id="info-box">
+    <button class="close-btn" title="بستن">&times;</button>
+    <p id="info-text">اطلاعات:</p>
+  </div>
+
+  <!-- نقشه -->
+  <div id="map"></div>
+
+  <script>
+    // ایجاد نقشه
+    const map = new ol.Map({
+      target: 'map',
+      layers: [
+        new ol.layer.Tile({
+          source: new ol.source.OSM()
+        })
+      ],
+      view: new ol.View({
+        center: [0, 0],
+        zoom: 2
+      })
+    });
+
+    window.addEventListener('resize', function() {
+      map.updateSize();
+    });
+
+    // مسیر فایل GeoJSON (آدرس فایل مورد نظر شما)
+    const geojsonFilePath = 'https://farstvtosh.ir/wp-content/plugins/my-custom-shortcode/json/shirazpolygon_eslah.json';
+
+    let vectorLayer;
+    async function loadGeoJSON() {
+      try {
+        const response = await fetch(geojsonFilePath);
+        if (!response.ok) {
+          throw new Error('Failed to load GeoJSON file.');
+        }
+        const geojsonData = await response.json();
+        const vectorSource = new ol.source.Vector({
+          features: new ol.format.GeoJSON().readFeatures(geojsonData, {
+            dataProjection: 'EPSG:4326',
+            featureProjection: 'EPSG:3857'
+          })
+        });
+        vectorLayer = new ol.layer.Vector({
+          source: vectorSource,
+          style: new ol.style.Style({
+            fill: new ol.style.Fill({ color: 'rgba(255, 153, 0, 0.4)' }),
+            stroke: new ol.style.Stroke({ color: 'red', width: 2 })
+          })
+        });
+        map.addLayer(vectorLayer);
+
+        // محاسبه extent GeoJSON و تعیین مرکز نقشه
+        const extent = vectorSource.getExtent();
+        if (extent) {
+          const center = ol.extent.getCenter(extent);
+          map.getView().setCenter(center);
+          map.getView().setZoom(12);
+        } else {
+          console.warn('No valid extent found in GeoJSON.');
+        }
+
+        // رویداد کلیک روی نقشه برای نمایش اطلاعات
+        map.on('click', function(evt) {
+          const infoBox = document.getElementById('info-box');
+          const infoText = document.getElementById('info-text');
+          infoBox.style.display = 'none';
+          const feature = map.forEachFeatureAtPixel(evt.pixel, function(feature) {
+            return feature;
+          });
+          if (feature) {
+            const properties = feature.getProperties();
+            let infoContent = '';
+            for (const key in properties) {
+              if (properties.hasOwnProperty(key) && typeof properties[key] !== 'object') {
+                infoContent += `<strong>${key}:</strong> ${properties[key]}<br>`;
+              }
+            }
+            infoText.innerHTML = infoContent;
+            infoBox.style.display = 'block';
+          }
+        });
+      } catch (error) {
+        console.error('Error loading GeoJSON:', error);
+        alert('Failed to load GeoJSON file. Please check the file path and server settings.');
+      }
+    }
+    loadGeoJSON();
+
+    // دریافت موقعیت کاربر
+    function getUserLocation() {
+      return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject('Geolocation is not supported by this browser.');
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          position => {
+            const coords = ol.proj.fromLonLat([position.coords.longitude, position.coords.latitude]);
+            resolve(coords);
+          },
+          error => {
+            reject('Unable to retrieve your location.');
+          }
+        );
+      });
+    }
+
+    // نمایش مارکر برای موقعیت کاربر
+    function showUserMarker(coords) {
+      map.getLayers().forEach(layer => {
+        if (layer.get('name') === 'user-marker') {
+          map.removeLayer(layer);
+        }
+      });
+      const userMarkerSource = new ol.source.Vector({
+        features: [
+          new ol.Feature({
+            geometry: new ol.geom.Point(coords)
+          })
+        ]
+      });
+      const userMarkerLayer = new ol.layer.Vector({
+        source: userMarkerSource,
+        style: new ol.style.Style({
+          image: new ol.style.Icon({
+            src: 'https://openlayers.org/en/v6.5.0/examples/data/icon.png',
+            scale: 0.5
+          })
+        }),
+        name: 'user-marker'
+      });
+      map.addLayer(userMarkerLayer);
+    }
+
+    // بررسی قرارگیری نقطه در داخل چندضلعی
+    function isPointInPolygon(point, polygon) {
+      return polygon.getGeometry().intersectsCoordinate(point);
+    }
+
+    // مرکز کردن نقشه بر روی موقعیت کاربر و نمایش مارکر
+    async function centerOnUserLocation() {
+      try {
+        const userLocation = await getUserLocation();
+        if (userLocation) {
+          map.getView().setCenter(userLocation);
+          map.getView().setZoom(15);
+          showUserMarker(userLocation);
+          const features = vectorLayer.getSource().getFeatures();
+          features.forEach(feature => {
+            if (isPointInPolygon(userLocation, feature)) {
+              feature.setStyle(new ol.style.Style({
+                fill: new ol.style.Fill({ color: 'rgba(0, 255, 0, 0.4)' }),
+                stroke: new ol.style.Stroke({ color: 'green', width: 2 })
+              }));
+            } else {
+              feature.setStyle(new ol.style.Style({
+                fill: new ol.style.Fill({ color: 'rgba(255, 153, 0, 0.1)' }),
+                stroke: new ol.style.Stroke({ color: 'red', width: 2 })
+              }));
+            }
+          });
+        }
+      } catch (error) {
+        console.warn('Unable to get user location:', error);
+        alert('Unable to retrieve your location. Please make sure geolocation is enabled.');
+      }
+    }
+    document.getElementById('locate-button').addEventListener('click', centerOnUserLocation);
+
+    // بستن جعبه اطلاعات
+    document.querySelector('#info-box .close-btn').addEventListener('click', function() {
+      document.getElementById('info-box').style.display = 'none';
+    });
+
+    // جستجوی مکان توسط کاربر
+    document.getElementById('search-button').addEventListener('click', function() {
+      const query = prompt('لطفاً نام مکان مورد نظر را وارد کنید:');
+      if (query) {
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.length > 0) {
+              const result = data[0];
+              const coords = ol.proj.fromLonLat([parseFloat(result.lon), parseFloat(result.lat)]);
+              map.getView().setCenter(coords);
+              map.getView().setZoom(15);
+              showUserMarker(coords);
+              const features = vectorLayer.getSource().getFeatures();
+              features.forEach(feature => {
+                if (isPointInPolygon(coords, feature)) {
+                  feature.setStyle(new ol.style.Style({
+                    fill: new ol.style.Fill({ color: 'rgba(0, 255, 0, 0.4)' }),
+                    stroke: new ol.style.Stroke({ color: 'green', width: 2 })
+                  }));
+                } else {
+                  feature.setStyle(new ol.style.Style({
+                    fill: new ol.style.Fill({ color: 'rgba(255, 153, 0, 0.1)' }),
+                    stroke: new ol.style.Stroke({ color: 'red', width: 2 })
+                  }));
+                }
+              });
+            } else {
+              alert('مکان مورد نظر یافت نشد.');
+            }
+          })
+          .catch(error => {
+            console.error('Error during geocoding:', error);
+            alert('خطا در جستجوی مکان.');
+          });
+      }
+    });
+
+    // فعال/غیرفعال کردن لایه GeoJSON
+    document.getElementById('toggle-geojson').addEventListener('click', function() {
+      if (vectorLayer) {
+        vectorLayer.setVisible(!vectorLayer.getVisible());
+      }
+    });
+
+    // دکمه‌های زوم
+    document.getElementById('zoom-in').addEventListener('click', function() {
+      const view = map.getView();
+      view.setZoom(view.getZoom() + 1);
+    });
+    document.getElementById('zoom-out').addEventListener('click', function() {
+      const view = map.getView();
+      view.setZoom(view.getZoom() - 1);
+    });
+  </script>
+  <!-- ثبت Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(registration => {
+          console.log('Service Worker registered with scope:', registration.scope);
+        })
+        .catch(error => {
+          console.error('Service Worker registration failed:', error);
+        });
+    }
+  </script>
+</body>
+</html>

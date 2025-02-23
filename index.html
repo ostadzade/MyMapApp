@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <title>نقشه من</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- لینک به CSS کتابخانه Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+    integrity="sha512-xodZBntMZJUncM7gHfIy3ekQ39nA45dckGd8cy8F32Y3OoP7JNprIsV6RKfN8r+XhmGD9I0Ijm6zZ2sL4D/w2g=="
+    crossorigin=""/>
+  <style>
+    /* ارتفاع و عرض نقشه */
+    #map {
+      height: 100vh;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <!-- اینجا نقشه نمایش داده خواهد شد -->
+  <div id="map"></div>
+  <!-- اسکریپت کتابخانه Leaflet -->
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+    integrity="sha512-nmm6qJlG8if2b61OeE+Jd8r+HqDmy3ml02lI4N5uR0tdUQ9eM3zPwr1F5z7enrKx4vzw6xz7M2Jj6ZkK6UL0wA=="
+    crossorigin=""></script>
+  <script>
+    // ایجاد نقشه و تنظیم مختصات اولیه (اینجا تهران مثال است)
+    var map = L.map('map').setView([35.6892, 51.3890], 13);
+    // اضافه کردن لایه نقشه از OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+  </script>
+</body>
+</html>

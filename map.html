@@ -3,10 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>نقشه</title>
-  <!-- لینک‌های CSS و JS مربوط به نقشه -->
+  <title>OpenLayers + GeoJSON Polygon Example</title>
+  <!-- Add OpenLayers CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol/ol.css">
+  <!-- Font Awesome برای آیکون‌ها -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <!-- لینک به manifest فایل -->
+  <link rel="manifest" href="manifest.json">
+  <!-- تعیین رنگ تم -->
+  <meta name="theme-color" content="#ffffff">
   <style>
     /* استایل اصلی نقشه */
     #map {
@@ -102,6 +107,8 @@
       }
     }
   </style>
+  <!-- Add OpenLayers JS -->
+  <script src="https://cdn.jsdelivr.net/npm/ol/dist/ol.js"></script>
 </head>
 <body>
   <!-- نوار ابزار -->
@@ -354,6 +361,18 @@
       const view = map.getView();
       view.setZoom(view.getZoom() - 1);
     });
+  </script>
+  <!-- ثبت Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(registration => {
+          console.log('Service Worker registered with scope:', registration.scope);
+        })
+        .catch(error => {
+          console.error('Service Worker registration failed:', error);
+        });
+    }
   </script>
 </body>
 </html>
